@@ -1,0 +1,22 @@
+body {
+    background-color: #FFDBDB;
+}
+
+.w-1-custom{
+    width: 60%;
+}
+
+.w-2-custom{
+    width: 70%;
+}
+
+.my-styled-div {
+    width: 40%; /* Maintain 70% width relative to its parent column */
+    border: 1px solid #b2ebf2; /* Subtle border */
+    color: #333; /* Darker text for readability */
+    display: flex;
+    justify-content: center;
+    font-size: 1rem;
+    gap: 2rem;
+    font-family: Arial, sans-serif;
+}
