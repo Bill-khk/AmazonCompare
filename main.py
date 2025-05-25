@@ -6,6 +6,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium_stealth import stealth
 from selenium.webdriver.common.by import By
 from fake_useragent import UserAgent
+from selenium.webdriver.common.keys import Keys
 import time
 
 dict_url = {
@@ -39,10 +40,9 @@ def search():
     if request.args.get('Belgium'):
         result = search_online(item, dict_url['Belgium'])
         comparative_list.append(result)
-
     print(comparative_list)
 
-    return render_template('home.html', dict_url=dict_url)
+    return render_template('home.html', dict_url=dict_url, list=comparative_list)
 
 
 def search_online(item, URL):
@@ -70,71 +70,79 @@ def search_online(item, URL):
             fix_hairline=True,
             )
 
+    # Open Google
+    driver.get(URL)
+    # Disable navigator.webdriver detection
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    time.sleep(1)  # Allow time for JavaScript to load
+
+    # Language
     try:
-        # Open Google
-        driver.get(URL)
-        # Disable navigator.webdriver detection
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        time.sleep(1)  # Allow time for JavaScript to load
+        target = driver.find_element(By.CLASS_NAME, 'redir-a-button-desktop')
+        target.click()
+    except NoSuchElementException:
+        pass
 
-        # Language
-        try:
-            target = driver.find_element(By.CLASS_NAME, 'redir-a-button-desktop')
-            target.click()
-        except NoSuchElementException:
-            pass
+    # Cookies :
+    try:
+        target = driver.find_element(By.ID, 'a-autoid-0')
+        target.click()
+    except NoSuchElementException:
+        pass
 
-        # Cookies :
-        try:
-            target = driver.find_element(By.ID, 'a-autoid-0')
-            target.click()
-        except NoSuchElementException:
-            pass
-
-        try:
-            target = driver.find_element(By.ID, 'twotabsearchtextbox')
-            target.click()
-        except NoSuchElementException:
-            target = driver.find_element(By.ID, 'nav-bb-search')
-            target.click()
-
-        target.send_keys(item)
-        target = driver.find_element(By.ID, 'nav-search-submit-button')
+    # Search bar
+    try:
+        target = driver.find_element(By.ID, 'twotabsearchtextbox')
+        target.click()
+    except NoSuchElementException:
+        target = driver.find_element(By.ID, 'nav-bb-search')  #Changed by class
         target.click()
 
-        result_list = driver.find_elements(By.CLASS_NAME, 'puis-card-container')
-        final_result = []
-        for item_result in result_list:
-            try:
-                title_element = item_result.find_element(By.CSS_SELECTOR, 'h2')
-                match = 0
-                for word in item.split():
-                    lower_word = word = word[0].lower() + word[1:]
-                    # print(f'{word.capitalize()} or {lower_word} in {title_element.text}')  # Used as a test
-                    if title_element.text.find(word.capitalize()) > 0:
-                        match += 1
-                    elif title_element.text.find(lower_word) > 0:  # Manage capitalize words
-                        match += 1
+    target.send_keys(item)
+    target.send_keys(Keys.ENTER)
+    time.sleep(0.5)
 
-                match = match / len(item.split())
-                print(f'Final match: {match} for {title_element.text}')  # Used to test
-                # TODO threshold based on number of word
-                if match > 0.8:  # Base the result on the % of correspondence between item name and result title
-                    final_result.append(title_element.text)
-                    final_result.append(item_result.find_element(By.CLASS_NAME, 'a-price-whole').text)
-                    final_result.append(item_result.find_element(By.CSS_SELECTOR, 'a').get_attribute('href'))
-                    break
-            except NoSuchElementException:
-                print(f"No <h2> found in {item}.")
+    # try:
+    #     target.send_keys(item)
+    #     target.send_keys(Keys.ENTER)
+    #     target = driver.find_element(By.ID, 'nav-search-submit-button')
+    #     target.click()
+    # except NoSuchElementException:
+    #     target.send_keys(item)
+    #     target = driver.find_element(By.ID, 'nav-bb-button')
+    #     target.click()
 
+    result_list = driver.find_elements(By.CLASS_NAME, 'puis-card-container')
+    final_result = []
 
-        print(f'Final item selection: {final_result}')
-        return final_result
+    for item_result in result_list:
+        try:
+            title_element = item_result.find_element(By.CSS_SELECTOR, 'h2')
+            match = 0
+            for word in item.split():
+                lower_word = word = word[0].lower() + word[1:]
+                # print(f'{word.capitalize()} or {lower_word} in {title_element.text}')  # Used as a test
+                if title_element.text.find(word.capitalize()) > 0:
+                    match += 1
+                elif title_element.text.find(lower_word) > 0:  # Manage capitalize words
+                    match += 1
 
-    finally:
-        # Close the browser
-        #driver.quit()
-        pass
+            match = match / len(item.split())
+            # print(f'Final match: {match} for {title_element.text}')  # Used to test
+            # TODO threshold based on number of word
+            if match > 0.8:  # Base the result on the % of correspondence between item name and result title
+                final_result.append(title_element.text)
+                final_result.append(item_result.find_element(By.CLASS_NAME, 'a-price-whole').text)
+                final_result.append(item_result.find_element(By.CSS_SELECTOR, 'a').get_attribute('href'))
+                final_result.append(item_result.find_element(By.CLASS_NAME, 's-image').get_attribute('src'))
+                break
+        except NoSuchElementException:
+            print(f"No <h2> found in {item}.")
+
+    print(f'Final item selection: {final_result}')
+    # Close the browser
+    driver.close()
+    return final_result
 
 
 if __name__ == "__main__":
