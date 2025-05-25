@@ -79,8 +79,7 @@ def search_online(item, URL):
 
         # Language
         try:
-            target = driver.find_element(By.CLASS_NAME, 'redir-overlay')
-            target = target.find_element(By.CLASS_NAME, 'redir-a-button-center') # TODO to correct
+            target = driver.find_element(By.CLASS_NAME, 'redir-a-button-desktop')
             target.click()
         except NoSuchElementException:
             pass
@@ -105,7 +104,6 @@ def search_online(item, URL):
 
         result_list = driver.find_elements(By.CLASS_NAME, 'puis-card-container')
         final_result = []
-        to_break = False
         for item_result in result_list:
             try:
                 title_element = item_result.find_element(By.CSS_SELECTOR, 'h2')
@@ -119,18 +117,16 @@ def search_online(item, URL):
                         match += 1
 
                 match = match / len(item.split())
-                # print(f'Final match: {match} for {title_element.text}')  # Used to test
+                print(f'Final match: {match} for {title_element.text}')  # Used to test
                 # TODO threshold based on number of word
                 if match > 0.8:  # Base the result on the % of correspondence between item name and result title
                     final_result.append(title_element.text)
                     final_result.append(item_result.find_element(By.CLASS_NAME, 'a-price-whole').text)
                     final_result.append(item_result.find_element(By.CSS_SELECTOR, 'a').get_attribute('href'))
-                    to_break = True
+                    break
             except NoSuchElementException:
                 print(f"No <h2> found in {item}.")
 
-            if to_break:
-                break
 
         print(f'Final item selection: {final_result}')
         return final_result
