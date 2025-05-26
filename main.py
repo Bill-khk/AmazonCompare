@@ -17,6 +17,8 @@ dict_url = {
 
 app = Flask(__name__)
 
+# TODO put a slide to select the wanted match between research and returned item
+# TODO put a suggestion when typing in the research bar ?
 
 @app.route("/")
 def hello():
@@ -43,6 +45,11 @@ def search():
     print(comparative_list)
 
     return render_template('home.html', dict_url=dict_url, list=comparative_list)
+
+
+def test_word(word):
+    lower = word[0].lower() + word[1:]
+    return word.capitalize(), lower
 
 
 def search_online(item, URL):
@@ -102,43 +109,75 @@ def search_online(item, URL):
     target.send_keys(Keys.ENTER)
     time.sleep(0.5)
 
-    # try:
-    #     target.send_keys(item)
-    #     target.send_keys(Keys.ENTER)
-    #     target = driver.find_element(By.ID, 'nav-search-submit-button')
-    #     target.click()
-    # except NoSuchElementException:
-    #     target.send_keys(item)
-    #     target = driver.find_element(By.ID, 'nav-bb-button')
-    #     target.click()
-
     result_list = driver.find_elements(By.CLASS_NAME, 'puis-card-container')
     final_result = []
-
+    temp_candidate = []  # Use to store item while looking for the other match
+    max_candidate = 3
+    candidate_number = 0
     for item_result in result_list:
-        try:
-            title_element = item_result.find_element(By.CSS_SELECTOR, 'h2')
-            match = 0
-            for word in item.split():
-                lower_word = word = word[0].lower() + word[1:]
-                # print(f'{word.capitalize()} or {lower_word} in {title_element.text}')  # Used as a test
-                if title_element.text.find(word.capitalize()) > 0:
-                    match += 1
-                elif title_element.text.find(lower_word) > 0:  # Manage capitalize words
-                    match += 1
+        if not candidate_number == max_candidate:  # Used to limit the number or search returned
+            temp_item = []
+            next_item = False  # Use to validate candidate based on first few word of returned item
+            try:
+                title_element = item_result.find_element(By.CSS_SELECTOR, 'h2')
+                match = 0
 
-            match = match / len(item.split())
-            # print(f'Final match: {match} for {title_element.text}')  # Used to test
-            # TODO threshold based on number of word
-            if match > 0.8:  # Base the result on the % of correspondence between item name and result title
-                final_result.append(title_element.text)
-                final_result.append(item_result.find_element(By.CLASS_NAME, 'a-price-whole').text)
-                final_result.append(item_result.find_element(By.CSS_SELECTOR, 'a').get_attribute('href'))
-                final_result.append(item_result.find_element(By.CLASS_NAME, 's-image').get_attribute('src'))
-                break
-        except NoSuchElementException:
-            print(f"No <h2> found in {item}.")
+                # The word in search must be one of the three first words
+                test_title = title_element.text.split()[0:3]
+                print('-------------------------------')
+                test = 0
+                for word in item.split():
+                    if test_word(word)[0] in test_title or test_word(word)[1] in test_title:
+                        test += 1
+                        print(f'{word} found in {test_title}')
 
+                print(f'Test result: {test}')
+                if test == 0:
+                    next_item = True
+
+                if not next_item:
+                    print('Candidate --')
+                    candidate_number += 1
+                    # Check the % of words in the research compare to in the title
+                    # TODO put all the item.split in lowercase - to manage scenario like AirPod
+                    for word in item.split():
+                        lower_word = word = word[0].lower() + word[1:]
+                        print(f'{word.capitalize()} or {lower_word} in {title_element.text}')  # Used as a test
+                        if test_word(word)[0] in title_element.text or test_word(word)[1] in title_element.text:
+                            match += 1
+
+                    match = match / len(item.split())
+                    print(f'Final match: {match} for {title_element.text}')  # Used to test
+                    # TODO threshold based on number of word
+                    if match > 0.6:  # Base the result on the % of correspondence between item name and result title
+                        print("It's a match !")
+                        final_result.append(title_element.text)
+                        final_result.append(item_result.find_element(By.CLASS_NAME, 'a-price-whole').text)
+                        final_result.append(item_result.find_element(By.CSS_SELECTOR, 'a').get_attribute('href'))
+                        final_result.append(item_result.find_element(By.CLASS_NAME, 's-image').get_attribute('src'))
+
+                        # Temporary storage
+                        temp_item.append(title_element.text)
+                        temp_item.append(item_result.find_element(By.CLASS_NAME, 'a-price-whole').text)
+                        temp_item.append(item_result.find_element(By.CSS_SELECTOR, 'a').get_attribute('href'))
+                        temp_item.append(item_result.find_element(By.CLASS_NAME, 's-image').get_attribute('src'))
+                        temp_candidate.append(temp_item)
+
+            except NoSuchElementException:
+                print(f"No <h2> found in {item}.")
+
+    # Analysing temp candidate
+    print(temp_candidate)
+    mean_price = 0
+    for item in temp_candidate:
+        mean_price += int(item[1])
+    mean_price = mean_price / len(temp_candidate)
+
+    # Keep item if the price is around the mean price of all candidate
+    temp_candidate_bis = [item for item in temp_candidate if
+                          (mean_price + mean_price * 0.3) > int(item[1]) > (mean_price - mean_price * 0.3)]
+
+    print(temp_candidate_bis)
     print(f'Final item selection: {final_result}')
     # Close the browser
     driver.close()

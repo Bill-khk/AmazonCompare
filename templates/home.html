@@ -29,13 +29,15 @@
         {% if list : %}
             {% for item in list %}
                 <div class="d-flex">
-                    <img class='bd-highlight m-3' src="{{item[3]}}" alt="Product image">
+                    <img class='image bd-highlight m-3' src="{{item[3]}}" alt="Product image">
                     <div class="d-flex flex-column">
+                        <p></p>
                         <h5 class="product_name "><strong>{{item[0]}}</strong></h5>
                         <p class="price"><strong>{{item[1]}} €</strong></p>
+                        <a href="{{item[2]}}" target="_blank">Link</a></br>
+                        <a href="/">Wrong item</a>
                     </div>
-                    <a href="{{item[2]}}">Link</a></br>
-                    <a href="/">Wrong item</a>
+
                 </div>
             {% endfor %}
         {% endif %}

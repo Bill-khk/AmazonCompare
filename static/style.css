@@ -20,3 +20,7 @@ body {
     gap: 2rem;
     font-family: Arial, sans-serif;
 }
+
+.image{
+    max-height:150px
+}
