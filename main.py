@@ -17,6 +17,8 @@ dict_url = {
 
 app = Flask(__name__)
 
+debug = 1
+
 # TODO put a slide to select the wanted match between research and returned item
 # TODO put a suggestion when typing in the research bar ?
 
@@ -112,10 +114,10 @@ def search_online(item, URL):
     result_list = driver.find_elements(By.CLASS_NAME, 'puis-card-container')
     final_result = []
     temp_candidate = []  # Use to store item while looking for the other match
-    max_candidate = 3
-    candidate_number = 0
+    max_match = 3
+    match_number = 0
     for item_result in result_list:
-        if not candidate_number == max_candidate:  # Used to limit the number or search returned
+        if not match_number == max_match:  # Used to limit the number or search returned
             temp_item = []
             next_item = False  # Use to validate candidate based on first few word of returned item
             try:
@@ -124,33 +126,38 @@ def search_online(item, URL):
 
                 # The word in search must be one of the three first words
                 test_title = title_element.text.lower().split()[0:3]
-                print('-------------------------------')
                 test = 0
+                if debug > 0:
+                    print('-------------------------------')
                 for word in item.lower().split():
                     if word in test_title:
                         test += 1
-                        print(f'{word} found in {test_title}')
-
-                print(f'Test result: {test} for {test_title}')
+                        if debug > 1:
+                            print(f'{word} found in {test_title}')
+                if debug > 0:
+                    print(f'Pretest result: {test} for {test_title}')
                 if test == 0:
                     next_item = True
 
-                if not next_item:
-                    print('Candidate --')
-                    candidate_number += 1
+                if not next_item:  # Then the title seems to match
+                    if debug > 0:
+                        print('Candidate ----')
                     # Check the % of words in the research compare to in the title
-                    # TODO put all the item.split in lowercase - to manage scenario like AirPod
                     for word in item.lower().split():
                         # lower_word = word[0].lower() + word[1:]
-                        print(f'{word} in {title_element.text.lower()}')  # Used as a test
                         if word in title_element.text.lower():
                             match += 1
+                            if debug > 1:
+                                print(f'{word} found in candidate : [{title_element.text.lower()}]')  # Used as a test
 
                     match = match / len(item.split())
-                    print(f'Final match: {match} for {title_element.text}')  # Used to test
+                    if debug > 0:
+                        print(f'---- Final match: {match} for {title_element.text}')  # Used to test
                     # TODO threshold based on number of word
                     if match > 0.6:  # Base the result on the % of correspondence between item name and result title
-                        print("It's a match !")
+                        match_number += 1
+                        if debug > 0:
+                            print("It's a match !")
                         final_result.append(title_element.text)
                         final_result.append(item_result.find_element(By.CLASS_NAME, 'a-price-whole').text)
                         final_result.append(item_result.find_element(By.CSS_SELECTOR, 'a').get_attribute('href'))
@@ -164,21 +171,25 @@ def search_online(item, URL):
                         temp_candidate.append(temp_item)
 
             except NoSuchElementException:
-                print(f"No <h2> found in {item}.")
+                if debug > 0:
+                    print(f"No <h2> found in {item}.")
 
-    # Analysing temp candidate
-    print(temp_candidate)
+    print(f'Post analysis with {len(temp_candidate)} candidates')
+    # Analysing temp candidate vs price of others
     mean_price = 0
     for item in temp_candidate:
         mean_price += int(item[1])
     mean_price = mean_price / len(temp_candidate)
+    if debug > 1:
+        print(f'mean price:{mean_price}vs{temp_candidate[1]} for {temp_candidate[0]}')
 
-    # Keep item if the price is around the mean price of all candidate
+    # Keep candidate if the price is around the mean price
     temp_candidate_bis = [item for item in temp_candidate if
                           (mean_price + mean_price * 0.3) > int(item[1]) > (mean_price - mean_price * 0.3)]
 
     print(temp_candidate_bis)
-    print(f'Final item selection: {final_result}')
+    if debug > 0:
+        print(f'Final item selection: {final_result}')
     # Close the browser
     driver.close()
     return final_result
