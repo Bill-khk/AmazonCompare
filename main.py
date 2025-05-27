@@ -123,15 +123,15 @@ def search_online(item, URL):
                 match = 0
 
                 # The word in search must be one of the three first words
-                test_title = title_element.text.split()[0:3]
+                test_title = title_element.text.lower().split()[0:3]
                 print('-------------------------------')
                 test = 0
-                for word in item.split():
-                    if test_word(word)[0] in test_title or test_word(word)[1] in test_title:
+                for word in item.lower().split():
+                    if word in test_title:
                         test += 1
                         print(f'{word} found in {test_title}')
 
-                print(f'Test result: {test}')
+                print(f'Test result: {test} for {test_title}')
                 if test == 0:
                     next_item = True
 
@@ -140,10 +140,10 @@ def search_online(item, URL):
                     candidate_number += 1
                     # Check the % of words in the research compare to in the title
                     # TODO put all the item.split in lowercase - to manage scenario like AirPod
-                    for word in item.split():
-                        lower_word = word = word[0].lower() + word[1:]
-                        print(f'{word.capitalize()} or {lower_word} in {title_element.text}')  # Used as a test
-                        if test_word(word)[0] in title_element.text or test_word(word)[1] in title_element.text:
+                    for word in item.lower().split():
+                        # lower_word = word[0].lower() + word[1:]
+                        print(f'{word} in {title_element.text.lower()}')  # Used as a test
+                        if word in title_element.text.lower():
                             match += 1
 
                     match = match / len(item.split())
