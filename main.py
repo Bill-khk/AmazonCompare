@@ -21,6 +21,7 @@ debug = 1
 
 # TODO put a slide to select the wanted match between research and returned item
 # TODO put a suggestion when typing in the research bar ?
+# TODO enhance visual
 
 @app.route("/")
 def hello():
